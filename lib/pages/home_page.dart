@@ -63,7 +63,7 @@ class _HomePageState extends State<HomePage> {
                 ),
                 )
                 .border(color: Colors.black,width: 5.0)
-                .withRounded(value: 60.0)
+                .withRounded(value: 50.0)
                 .make().p16().centered();
           },
         )
