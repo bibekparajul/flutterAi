@@ -18,9 +18,12 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   late List<MyRadio> radios;
 
+  MyRadio ?_selectedRadio;
+  // Color ?_selectedColor;
+  bool _isPlaying = false;
 
 
-
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
 
   @override
@@ -28,6 +31,19 @@ class _HomePageState extends State<HomePage> {
     // TODO: implement initState
     super.initState();
     fetchRadios();
+
+    _audioPlayer.onPlayerStateChanged.listen((event) {
+      if(event == PlayerState.playing){
+        _isPlaying = true;
+
+      }
+      else{
+        _isPlaying = false;
+      }
+      setState(() {
+        
+      });
+    });
   }
 
   fetchRadios() async {
@@ -35,6 +51,15 @@ class _HomePageState extends State<HomePage> {
     radios = MyRadioList.fromJson(radioJson).radios;
     // print(radios);
     setState(() {});
+  }
+
+   _playMusic(String url){
+    _audioPlayer.play(UrlSource(url));
+    _selectedRadio = radios.firstWhere((element) => element.url ==url);
+    print(_selectedRadio?.name);
+    setState(() {
+      
+    });
   }
 
   @override
@@ -62,11 +87,7 @@ class _HomePageState extends State<HomePage> {
           centerTitle: true,
           elevation: 0.0,
         ).h(100).p16(),
-
-
-
-
-        VxSwiper.builder(
+        radios!=null?VxSwiper.builder(
           itemCount: radios.length,
           aspectRatio: 1.0,
           enlargeCenterPage: true,
@@ -119,15 +140,34 @@ class _HomePageState extends State<HomePage> {
                 .border(color: Colors.black, width: 5.0)
                 .withRounded(value: 50.0)
                 .make()
-                .onInkDoubleTap(() {})
+                .onInkDoubleTap(() {
+                  _playMusic(rad.url);
+                })
                 .p16();
                 
           },
-        ).centered(),
+        ).centered(): Center(child: CircularProgressIndicator(),),
         Align(
           alignment: Alignment.bottomCenter,
-          child: Icon(CupertinoIcons.stop_circle,
-          color: Colors.white, size: 40,),
+          child: [
+
+            if(_isPlaying)
+              "Playing Now - ${_selectedRadio?.name} FM".text.makeCentered(),
+            
+            Icon(
+            _isPlaying? CupertinoIcons.stop_circle : CupertinoIcons.play_circle,
+          color: Colors.white, size: 40,)
+          .onInkTap(() {
+            if(_isPlaying){
+              _audioPlayer.stop();
+            }else{
+              _playMusic(_selectedRadio!.url);
+            }
+          })
+          
+          
+          
+          ].vStack(),
 
         ).pOnly(bottom: context.percentHeight*12)
       ], fit: StackFit.expand),
