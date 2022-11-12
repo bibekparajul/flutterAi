@@ -1,5 +1,6 @@
 import 'package:aiflutter/model/ai.dart';
 import 'package:aiflutter/utils/ai_util.dart';
+import 'package:alan_voice/alan_voice.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ class _HomePageState extends State<HomePage> {
   late List<MyRadio> radios;
 
   MyRadio ?_selectedRadio;
-  // Color ?_selectedColor;
+  Color ?_selectedColor;
   bool _isPlaying = false;
 
 
@@ -30,6 +31,7 @@ class _HomePageState extends State<HomePage> {
   void initState() {
     // TODO: implement initState
     super.initState();
+    setupAlan();
     fetchRadios();
 
     _audioPlayer.onPlayerStateChanged.listen((event) {
@@ -46,9 +48,85 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  setupAlan(){
+    AlanVoice.addButton(
+        "ac0438e39413ef5131e540ea928025672e956eca572e1d8b807a3e2338fdd0dc/stage",
+        buttonAlign: AlanVoice.BUTTON_ALIGN_LEFT);
+        AlanVoice.callbacks.add((command) => _handleCommand(command.data),);
+  }
+
+  _handleCommand(Map<String,dynamic> response){
+    switch(response["command"]){
+      case "play":
+      _playMusic(_selectedRadio!.url);
+
+      break;
+
+
+      case "play_channel":
+      final id = response["id"];
+      _audioPlayer.pause();
+
+
+      MyRadio newRadio = radios.firstWhere((element) => element.id== id );
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+        _playMusic(newRadio.url);
+      break;
+
+
+      case "stop":
+      _audioPlayer.stop();
+      break;
+
+      case "next":
+      final index = _selectedRadio!.id;
+      MyRadio newRadio;
+      if(index+1>radios.length){
+        newRadio = radios.firstWhere((element) => element.id==1);
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+      }
+        else{
+          newRadio = radios.firstWhere((element) => element.id==index+1);
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+        }
+
+        _playMusic(newRadio.url);
+
+      break;
+
+      case "prev":
+      final index = _selectedRadio!.id;
+      MyRadio newRadio;
+      if(index- 1 <= 0){
+        newRadio = radios.firstWhere((element) => element.id==1);
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+      }
+        else{
+          newRadio = radios.firstWhere((element) => element.id==index-1);
+        radios.remove(newRadio);
+        radios.insert(0, newRadio);
+        }
+
+        _playMusic(newRadio.url);
+
+      break;
+
+      default:
+      print("Command was ${response["command"]}");
+      break;
+
+
+    }
+  }
+
   fetchRadios() async {
     final radioJson = await rootBundle.loadString("assets/radio.json");
     radios = MyRadioList.fromJson(radioJson).radios;
+    _selectedRadio = radios[0];
     // print(radios);
     setState(() {});
   }
@@ -72,8 +150,8 @@ class _HomePageState extends State<HomePage> {
             .size(context.screenWidth, context.screenHeight)
             .withGradient(
               LinearGradient(colors: [
-                AIColors.primaryColor1,
                 AIColors.primaryColor2,
+                _selectedColor??AIColors.primaryColor1,
               ], begin: Alignment.topLeft, end: Alignment.bottomLeft),
             )
             .make(),
@@ -87,10 +165,19 @@ class _HomePageState extends State<HomePage> {
           centerTitle: true,
           elevation: 0.0,
         ).h(100).p16(),
-        radios!=null?VxSwiper.builder(
+        radios!=null? VxSwiper.builder(
           itemCount: radios.length,
           aspectRatio: 1.0,
           enlargeCenterPage: true,
+
+          onPageChanged: (index) {
+            _selectedRadio = radios[index];
+            final colorHex = radios[index].color;
+            // _selectedColor = Color(int.tryParse(colorHex));
+            setState(() {
+              
+            });
+          },
           itemBuilder: (context, index) {
             final rad = radios[index];
             // ignore: prefer_const_literals_to_create_immutables
